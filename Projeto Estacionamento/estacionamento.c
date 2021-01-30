@@ -4,7 +4,7 @@
 #include <time.h>
 #include <math.h>
 
-#define LIMITE_VAGAS 2
+#define LIMITE_VAGAS 6
 #define QUANTIDADE_FUNCIONARIOS 4
 
 #define PRECO_HORA 12
@@ -34,6 +34,13 @@ typedef struct registrario {
     char *info;
     struct registrario *prox;
 } registrario;
+
+typedef struct buscaCarro {
+    char *placa;
+    struct buscaCarro *pai;
+    struct buscaCarro *proxE;
+    struct buscaCarro *proxD;
+} buscaCarro;
 
 int tempo, dinheiro=0, veiculosEstacionados=0, manobras1=0, manobras2=0;
 manobrista *funcionario;
@@ -401,6 +408,30 @@ registrario* registrar(registrario *registro, int tipo, char *info) {
     registro->prox = novo;
 
     return inicio;
+}
+
+int ehMaior(char *a, char *b) {
+    return strcmp(a, b) > 0;
+}
+
+void porArvore(buscaCarro *raiz, buscaCarro *novaFolha) {    
+    if (raiz == NULL) {
+        raiz = novaFolha;
+    }
+    else {
+        if (ehMaior(novaFolha->placa, raiz->placa)) {
+            if (raiz->proxD == NULL)
+                raiz->proxD = novaFolha;
+            else
+                porArvore(raiz->proxD, novaFolha);
+        }
+        else {
+            if (raiz->proxE == NULL)
+                raiz->proxE = novaFolha;
+            else
+                porArvore(raiz->proxE, novaFolha);
+        }
+    }
 }
 
 void main() {
