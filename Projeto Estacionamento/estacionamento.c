@@ -414,23 +414,40 @@ int ehMaior(char *a, char *b) {
     return strcmp(a, b) > 0;
 }
 
-void porArvore(buscaCarro *raiz, buscaCarro *novaFolha) {    
-    if (raiz == NULL) {
-        raiz = novaFolha;
-    }
-    else {
-        if (ehMaior(novaFolha->placa, raiz->placa)) {
-            if (raiz->proxD == NULL)
-                raiz->proxD = novaFolha;
-            else
-                porArvore(raiz->proxD, novaFolha);
+void porFolha(buscaCarro *raiz, buscaCarro *novaFolha) {    
+    if (ehMaior(novaFolha->placa, raiz->placa)) {
+        if (raiz->proxD == NULL) {
+            raiz->proxD = novaFolha;
+            novaFolha->pai = raiz;
         }
         else {
-            if (raiz->proxE == NULL)
-                raiz->proxE = novaFolha;
-            else
-                porArvore(raiz->proxE, novaFolha);
+            porFolha(raiz->proxD, novaFolha);
         }
+    }
+    else {
+        if (raiz->proxE == NULL){
+            raiz->proxE = novaFolha;
+            novaFolha->pai = raiz;
+        }
+        else {
+            porFolha(raiz->proxE, novaFolha);
+        }
+    }
+}
+
+buscaCarro* adicionarBuscaCarro(buscaCarro *raiz, char *placa) {
+    buscaCarro *novaFolha = malloc(sizeof(buscaCarro));
+    novaFolha->placa = placa;
+    novaFolha->pai = NULL;
+    novaFolha->proxE = NULL;
+    novaFolha->proxD = NULL;
+
+    if (raiz == NULL){
+        return novaFolha;
+    }
+    else {
+        porFolha(raiz, novaFolha);
+        return raiz;
     }
 }
 
