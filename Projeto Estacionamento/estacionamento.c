@@ -410,12 +410,10 @@ registrario* registrar(registrario *registro, int tipo, char *info) {
     return inicio;
 }
 
-int ehMaior(char *a, char *b) {
-    return strcmp(a, b) > 0;
-}
-
 void porFolha(buscaCarro *raiz, buscaCarro *novaFolha) {    
-    if (ehMaior(novaFolha->placa, raiz->placa)) {
+    int folhaEhMaior = strcmp(novaFolha->placa, raiz->placa) > 0;
+    
+    if (folhaEhMaior) {
         if (raiz->proxD == NULL) {
             raiz->proxD = novaFolha;
             novaFolha->pai = raiz;
@@ -450,6 +448,8 @@ buscaCarro* adicionarBuscaCarro(buscaCarro *raiz, char *placa) {
         return raiz;
     }
 }
+
+
 
 void main() {
     srand(time(NULL));
