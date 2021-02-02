@@ -477,7 +477,8 @@ void removerNo(buscaCarro *raiz, char *placa) {
                     filhoSubstituto->pai = raiz->pai;
                 }
             }
-            
+
+            //free(raiz);
             if (raiz->pai->proxE == raiz)
                 raiz->pai->proxE = filhoSubstituto;
             else
@@ -486,8 +487,6 @@ void removerNo(buscaCarro *raiz, char *placa) {
         else {
             arvoreCarros = NULL;
         }
-
-        //free(raiz);
     }
     else {
         int ehMaior = strcmp(placa, raiz->placa) > 0;
