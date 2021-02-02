@@ -44,6 +44,7 @@ typedef struct buscaCarro {
 
 int tempo, dinheiro=0, veiculosEstacionados=0, manobras1=0, manobras2=0;
 manobrista *funcionario;
+buscaCarro *arvoreCarros;
 
 manobrista* criarFuncionarios(int quantidade) {
     manobrista *inicio, *ultimo, *novo;
@@ -433,23 +434,74 @@ void porFolha(buscaCarro *raiz, buscaCarro *novaFolha) {
     }
 }
 
-buscaCarro* adicionarBuscaCarro(buscaCarro *raiz, char *placa) {
+void adicionarBuscaCarro(char *placa) {
     buscaCarro *novaFolha = malloc(sizeof(buscaCarro));
     novaFolha->placa = placa;
     novaFolha->pai = NULL;
     novaFolha->proxE = NULL;
     novaFolha->proxD = NULL;
 
-    if (raiz == NULL){
-        return novaFolha;
+    if (arvoreCarros == NULL)
+        arvoreCarros = novaFolha;
+    else
+        porFolha(arvoreCarros, novaFolha);
+}
+
+buscaCarro* maiorBuscaCarro(buscaCarro *raiz) {
+    if (raiz->proxD == NULL)
+        return raiz;
+    else
+        return maiorBuscaCarro(raiz->proxD);
+}
+
+void removerNo(buscaCarro *raiz, char *placa) {
+    int achou = strcmp(raiz->placa, placa) == 0;
+
+    if (achou) {
+        if (raiz->pai != NULL) {
+            buscaCarro *filhoSubstituto;
+
+            if (raiz->proxE == NULL && raiz->proxD == NULL) {
+                filhoSubstituto = NULL;
+            }
+            else {
+                if (raiz->proxE != NULL && raiz->proxD != NULL) {
+                    filhoSubstituto = maiorBuscaCarro(raiz->proxE);
+                    filhoSubstituto->pai->proxD = NULL;
+                    filhoSubstituto->proxD = raiz->proxD;
+                    if (filhoSubstituto != raiz->proxE)
+                        porFolha(filhoSubstituto, raiz->proxE);
+                }
+                else {
+                    filhoSubstituto = raiz->proxE != NULL ? raiz->proxE : raiz->proxD;
+                    filhoSubstituto->pai = raiz->pai;
+                }
+            }
+            
+            if (raiz->pai->proxE == raiz)
+                raiz->pai->proxE = filhoSubstituto;
+            else
+                raiz->pai->proxD = filhoSubstituto;
+        }
+        else {
+            arvoreCarros = NULL;
+        }
+
+        //free(raiz);
     }
     else {
-        porFolha(raiz, novaFolha);
-        return raiz;
+        int ehMaior = strcmp(placa, raiz->placa) > 0;
+
+        if (ehMaior)
+            removerNo(raiz->proxD, placa);
+        else
+            removerNo(raiz->proxE, placa);
     }
 }
 
-
+void removerBuscaCarro(char *placa) {
+    removerNo(arvoreCarros, placa);
+}
 
 void main() {
     srand(time(NULL));
