@@ -343,7 +343,6 @@ void removerNo(buscaCarro *raiz, char *placa) {
                 }
             }
 
-            //free(raiz);
             if (raiz->pai->proxE == raiz)
                 raiz->pai->proxE = filhoSubstituto;
             else
@@ -360,26 +359,6 @@ void removerNo(buscaCarro *raiz, char *placa) {
             removerNo(raiz->proxD, placa);
         else
             removerNo(raiz->proxE, placa);
-    }
-}
-
-int nivelArvore(buscaCarro *folha) {
-    if (folha->pai == NULL)
-        return 1;
-    else
-        return 1 + nivelArvore(folha->pai);
-}
-
-buscaCarro* getNo(buscaCarro *raiz, char *placa) {
-    int comparacaoNo = strcmp(placa, raiz->placa);
-    pesquisaArvore++;
-    if (comparacaoNo == 0)
-        return raiz;
-    else {
-        if (comparacaoNo < 0)
-            return getNo(raiz->proxE, placa);
-        else
-            return getNo(raiz->proxD, placa);
     }
 }
 
