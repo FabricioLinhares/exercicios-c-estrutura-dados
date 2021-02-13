@@ -4,11 +4,14 @@
 #include <time.h>
 #include <math.h>
 
-#define LIMITE_VAGAS 6
+#define LIMITE_VAGAS 12
 #define QUANTIDADE_FUNCIONARIOS 4
 
 #define PRECO_HORA 12
-#define BUDGET 300
+#define BUDGET 1000
+
+#define FRENTE 1
+#define ATRAS 0
 
 typedef struct manobrista {
     char nome;
@@ -42,9 +45,10 @@ typedef struct buscaCarro {
     struct buscaCarro *proxD;
 } buscaCarro;
 
-int tempo, dinheiro=0, veiculosEstacionados=0, manobras1=0, manobras2=0;
+int tempo, dinheiro=0, veiculosEstacionados=0, manobras1=0, manobras2=0, pesquisaLista=0, pesquisaArvore=0, pesquisaPilha=0, test=0, test2=0, eventos=0;
 manobrista *funcionario;
 buscaCarro *arvoreCarros;
+carro *pilhaPesquisa;
 
 manobrista* criarFuncionarios(int quantidade) {
     manobrista *inicio, *ultimo, *novo;
@@ -272,6 +276,130 @@ carro* desestacionar(carro *topo, char placa[9]) {
     return topo;
 }
 
+void porFolha(buscaCarro *raiz, buscaCarro *novaFolha) {    
+    int folhaEhMaior = strcmp(novaFolha->placa, raiz->placa) > 0;
+    
+    if (folhaEhMaior) {
+        if (raiz->proxD == NULL) {
+            raiz->proxD = novaFolha;
+            novaFolha->pai = raiz;
+        }
+        else {
+            porFolha(raiz->proxD, novaFolha);
+        }
+    }
+    else {
+        if (raiz->proxE == NULL){
+            raiz->proxE = novaFolha;
+            novaFolha->pai = raiz;
+        }
+        else {
+            porFolha(raiz->proxE, novaFolha);
+        }
+    }
+}
+
+void adicionarBuscaCarro(char *placa) {
+    buscaCarro *novaFolha = malloc(sizeof(buscaCarro));
+    novaFolha->placa = placa;
+    novaFolha->pai = NULL;
+    novaFolha->proxE = NULL;
+    novaFolha->proxD = NULL;
+
+    if (arvoreCarros == NULL)
+        arvoreCarros = novaFolha;
+    else
+        porFolha(arvoreCarros, novaFolha);
+}
+
+buscaCarro* maiorBuscaCarro(buscaCarro *raiz) {
+    if (raiz->proxD == NULL)
+        return raiz;
+    else
+        return maiorBuscaCarro(raiz->proxD);
+}
+
+void removerNo(buscaCarro *raiz, char *placa) {
+    int achou = strcmp(raiz->placa, placa) == 0;
+
+    if (achou) {
+        if (raiz->pai != NULL) {
+            buscaCarro *filhoSubstituto;
+
+            if (raiz->proxE == NULL && raiz->proxD == NULL) {
+                filhoSubstituto = NULL;
+            }
+            else {
+                if (raiz->proxE != NULL && raiz->proxD != NULL) {
+                    filhoSubstituto = maiorBuscaCarro(raiz->proxE);
+                    filhoSubstituto->pai->proxD = NULL;
+                    filhoSubstituto->proxD = raiz->proxD;
+                    if (filhoSubstituto != raiz->proxE)
+                        porFolha(filhoSubstituto, raiz->proxE);
+                }
+                else {
+                    filhoSubstituto = raiz->proxE != NULL ? raiz->proxE : raiz->proxD;
+                    filhoSubstituto->pai = raiz->pai;
+                }
+            }
+
+            //free(raiz);
+            if (raiz->pai->proxE == raiz)
+                raiz->pai->proxE = filhoSubstituto;
+            else
+                raiz->pai->proxD = filhoSubstituto;
+        }
+        else {
+            arvoreCarros = NULL;
+        }
+    }
+    else {
+        int ehMaior = strcmp(placa, raiz->placa) > 0;
+
+        if (ehMaior)
+            removerNo(raiz->proxD, placa);
+        else
+            removerNo(raiz->proxE, placa);
+    }
+}
+
+int nivelArvore(buscaCarro *folha) {
+    if (folha->pai == NULL)
+        return 1;
+    else
+        return 1 + nivelArvore(folha->pai);
+}
+
+buscaCarro* getNo(buscaCarro *raiz, char *placa) {
+    int comparacaoNo = strcmp(placa, raiz->placa);
+    pesquisaArvore++;
+    if (comparacaoNo == 0)
+        return raiz;
+    else {
+        if (comparacaoNo < 0)
+            return getNo(raiz->proxE, placa);
+        else
+            return getNo(raiz->proxD, placa);
+    }
+}
+
+int ehFolha(buscaCarro *raiz, char *placa) {
+    if (raiz != NULL) {
+        int comparacaoNo = strcmp(placa, raiz->placa);
+        pesquisaArvore++;
+        if (comparacaoNo == 0)
+            return raiz->proxE == NULL && raiz->proxD == NULL;
+        else {
+            if (comparacaoNo < 0)
+                return ehFolha(raiz->proxE, placa);
+            else
+                return ehFolha(raiz->proxD, placa);
+        }
+    }
+    else
+        return 0;
+}
+
 carro2* empilhar2(carro2 *topo, char *placa) {    
     int i;
     carro2 *novo = malloc(sizeof(carro2));
@@ -298,6 +426,8 @@ carro2* porFundo(carro2 *fundo, char *placa) {
 
 carro2* estacionar2(carro2 *topo, char *placa) {
     carro2 *novo = empilhar2(topo, placa);
+    adicionarBuscaCarro(placa);
+    pilhaPesquisa = empilhar(pilhaPesquisa, placa);
 
     veiculosEstacionados++;
     printf("Veiculo %s entrou! Total: %d\n", placa, veiculosEstacionados);
@@ -309,13 +439,36 @@ carro2* desestacionar2(carro2 *topo, carro2 *fundo, char *placa) {
     carro *manobrado = NULL;
     carro2 *aux=topo, *veiculoCerto;
     int contador=0;
+    int solucaoLista, solucaoPilha, solucaoArvore;
 
     printf("Veiculo %s ira sair!\n",  placa);
 
     while (strcmp(aux->placa, placa) != 0) {
         aux = aux->prox;
         contador++;
+        pesquisaLista++;
     }
+
+    solucaoLista = contador < veiculosEstacionados/2.0 ? FRENTE : ATRAS;
+
+    contador = 0;
+    while (strcmp(topo->placa, placa) != 0) {
+        manobrado = empilhar(manobrado, topo->placa);
+        topo = topo->prox;
+        contador++;
+        pesquisaPilha++;
+    }
+
+    while (manobrado != NULL) {
+        topo = empilhar2(topo, manobrado->placa);
+        manobrado = manobrado->prox;
+    }
+
+    solucaoPilha = contador < veiculosEstacionados/2.0 ? FRENTE : ATRAS;
+
+    solucaoArvore = ehFolha(arvoreCarros, placa) ? FRENTE : ATRAS;
+
+    eventos++;
 
     if (contador < veiculosEstacionados/2.0) {
         while (strcmp(topo->placa, placa) != 0) {
@@ -409,97 +562,6 @@ registrario* registrar(registrario *registro, int tipo, char *info) {
     registro->prox = novo;
 
     return inicio;
-}
-
-void porFolha(buscaCarro *raiz, buscaCarro *novaFolha) {    
-    int folhaEhMaior = strcmp(novaFolha->placa, raiz->placa) > 0;
-    
-    if (folhaEhMaior) {
-        if (raiz->proxD == NULL) {
-            raiz->proxD = novaFolha;
-            novaFolha->pai = raiz;
-        }
-        else {
-            porFolha(raiz->proxD, novaFolha);
-        }
-    }
-    else {
-        if (raiz->proxE == NULL){
-            raiz->proxE = novaFolha;
-            novaFolha->pai = raiz;
-        }
-        else {
-            porFolha(raiz->proxE, novaFolha);
-        }
-    }
-}
-
-void adicionarBuscaCarro(char *placa) {
-    buscaCarro *novaFolha = malloc(sizeof(buscaCarro));
-    novaFolha->placa = placa;
-    novaFolha->pai = NULL;
-    novaFolha->proxE = NULL;
-    novaFolha->proxD = NULL;
-
-    if (arvoreCarros == NULL)
-        arvoreCarros = novaFolha;
-    else
-        porFolha(arvoreCarros, novaFolha);
-}
-
-buscaCarro* maiorBuscaCarro(buscaCarro *raiz) {
-    if (raiz->proxD == NULL)
-        return raiz;
-    else
-        return maiorBuscaCarro(raiz->proxD);
-}
-
-void removerNo(buscaCarro *raiz, char *placa) {
-    int achou = strcmp(raiz->placa, placa) == 0;
-
-    if (achou) {
-        if (raiz->pai != NULL) {
-            buscaCarro *filhoSubstituto;
-
-            if (raiz->proxE == NULL && raiz->proxD == NULL) {
-                filhoSubstituto = NULL;
-            }
-            else {
-                if (raiz->proxE != NULL && raiz->proxD != NULL) {
-                    filhoSubstituto = maiorBuscaCarro(raiz->proxE);
-                    filhoSubstituto->pai->proxD = NULL;
-                    filhoSubstituto->proxD = raiz->proxD;
-                    if (filhoSubstituto != raiz->proxE)
-                        porFolha(filhoSubstituto, raiz->proxE);
-                }
-                else {
-                    filhoSubstituto = raiz->proxE != NULL ? raiz->proxE : raiz->proxD;
-                    filhoSubstituto->pai = raiz->pai;
-                }
-            }
-
-            //free(raiz);
-            if (raiz->pai->proxE == raiz)
-                raiz->pai->proxE = filhoSubstituto;
-            else
-                raiz->pai->proxD = filhoSubstituto;
-        }
-        else {
-            arvoreCarros = NULL;
-        }
-    }
-    else {
-        int ehMaior = strcmp(placa, raiz->placa) > 0;
-
-        if (ehMaior)
-            removerNo(raiz->proxD, placa);
-        else
-            removerNo(raiz->proxE, placa);
-    }
-}
-
-void removerBuscaCarro(char *placa) {
-    removerNo(arvoreCarros, placa);
 }
 
 void main() {
@@ -662,5 +724,8 @@ void main() {
     printf("Fechando simulacao!\n\n");
 
     printf("Manobras antes do portao: %d\n", manobras1);
-    printf("Manobras depois do portao: %d\n", manobras2);
+    printf("Manobras depois do portao: %d\n\n", manobras2);
+    printf("Media de pesquisa por lista encadeada: %.2f\n", pesquisaLista * 1.0/eventos);
+    printf("Media de pesquisa por pilha: %.2f\n", pesquisaPilha * 1.0/eventos);
+    printf("Media de pesquisa por arvore binaria: %.2f\n", pesquisaArvore * 1.0/eventos);
 }
