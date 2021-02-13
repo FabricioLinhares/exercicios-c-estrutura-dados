@@ -449,7 +449,7 @@ carro2* desestacionar2(carro2 *topo, carro2 *fundo, char *placa) {
 
     eventos++;
 
-    if (contador < veiculosEstacionados/2.0) {
+    if (solucaoLista) {
         while (strcmp(topo->placa, placa) != 0) {
             manobrado = empilhar(manobrado, topo->placa);
             printf("Funcionario %c manobrou para fora um carro! Placa: %s\n", funcionario->nome, topo->placa);
